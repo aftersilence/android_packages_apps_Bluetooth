@@ -305,7 +305,8 @@ public class BluetoothOppObexClientSession implements BluetoothOppObexSession {
         private BluetoothOppSendFileInfo processShareInfo() {
             if (V) Log.v(TAG, "Client thread processShareInfo() " + mInfo.mId);
 
-            BluetoothOppSendFileInfo fileInfo = BluetoothOppUtility.getSendFileInfo(mInfo.mUri);
+            BluetoothOppSendFileInfo fileInfo = BluetoothOppSendFileInfo.generateFileInfo(
+                    mContext1, mInfo.mUri, mInfo.mMimetype, mInfo.mDestination);
             if (fileInfo.mFileName == null || fileInfo.mLength == 0) {
                 if (V) Log.v(TAG, "BluetoothOppSendFileInfo get invalid file");
                     Constants.updateShareStatus(mContext1, mInfo.mId, fileInfo.mStatus);
@@ -342,7 +343,7 @@ public class BluetoothOppObexClientSession implements BluetoothOppObexSession {
             request.setHeader(HeaderSet.NAME, fileInfo.mFileName);
             request.setHeader(HeaderSet.TYPE, fileInfo.mMimetype);
 
-            applyRemoteDeviceQuirks(request, mInfo.mDestination, fileInfo.mFileName);
+            applyRemoteDeviceQuirks(request, fileInfo);
 
             Constants.updateShareStatus(mContext1, mInfo.mId, BluetoothShare.STATUS_RUNNING);
 
@@ -499,8 +500,7 @@ public class BluetoothOppObexClientSession implements BluetoothOppObexSession {
                 handleSendException(e.toString());
             } finally {
                 try {
-                    // Close InputStream and remove SendFileInfo from map
-                    BluetoothOppUtility.closeSendFileInfo(mInfo.mUri);
+                    fileInfo.mInputStream.close();
                     if (!error) {
                         responseCode = putOperation.getResponseCode();
                         if (responseCode != -1) {
@@ -566,7 +566,8 @@ public class BluetoothOppObexClientSession implements BluetoothOppObexSession {
         }
     }
 
-    public static void applyRemoteDeviceQuirks(HeaderSet request, String address, String filename) {
+    public static void applyRemoteDeviceQuirks(HeaderSet request, BluetoothOppSendFileInfo info) {
+        String address = info.mDestAddr;
         if (address == null) {
             return;
         }
@@ -575,6 +576,8 @@ public class BluetoothOppObexClientSession implements BluetoothOppObexSession {
             // Rejects filenames with more than one '.'. Rename to '_'.
             // for example: 'a.b.jpg' -> 'a_b.jpg'
             //              'abc.jpg' NOT CHANGED
+            String filename = info.mFileName;
+
             char[] c = filename.toCharArray();
             boolean firstDot = true;
             boolean modified = false;

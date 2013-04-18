@@ -246,15 +246,12 @@ public class BluetoothOppManager {
         if (V) Log.v(TAG, "Application data stored to SharedPreference! ");
     }
 
-    public void saveSendingFileInfo(String mimeType, String uriString, boolean isHandover) {
+    public void saveSendingFileInfo(String mimeType, String uri, boolean isHandover) {
         synchronized (BluetoothOppManager.this) {
             mMultipleFlag = false;
             mMimeTypeOfSendingFile = mimeType;
-            mUriOfSendingFile = uriString;
+            mUriOfSendingFile = uri;
             mIsHandoverInitiated = isHandover;
-            Uri uri = Uri.parse(uriString);
-            BluetoothOppUtility.putSendFileInfo(uri,
-                    BluetoothOppSendFileInfo.generateFileInfo(mContext, uri, mimeType));
             storeApplicationData();
         }
     }
@@ -265,10 +262,6 @@ public class BluetoothOppManager {
             mMimeTypeOfSendingFiles = mimeType;
             mUrisOfSendingFiles = uris;
             mIsHandoverInitiated = isHandover;
-            for (Uri uri : uris) {
-                BluetoothOppUtility.putSendFileInfo(uri,
-                        BluetoothOppSendFileInfo.generateFileInfo(mContext, uri, mimeType));
-            }
             storeApplicationData();
         }
     }

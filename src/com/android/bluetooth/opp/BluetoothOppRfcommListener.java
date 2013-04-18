@@ -39,7 +39,6 @@ import java.net.Socket;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
-import android.bluetooth.BluetoothUuid;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
@@ -80,7 +79,6 @@ public class BluetoothOppRfcommListener {
         mBtOppRfcommChannel = channel;
         mAdapter = adapter;
     }
-
 
     public synchronized boolean start(Handler callback) {
         if (mSocketAcceptThread == null) {
@@ -123,10 +121,8 @@ public class BluetoothOppRfcommListener {
                          */
                         for (int i = 0; i < CREATE_RETRY_TIME && !mInterrupted; i++) {
                             try {
-                                if (V) Log.v(TAG, "Starting RFCOMM listener....");
-                                mBtServerSocket = mAdapter.listenUsingInsecureRfcommOn(mBtOppRfcommChannel);
-                                //mBtServerSocket = mAdapter.listenUsingInsecureRfcommWithServiceRecord("OBEX Object Push", BluetoothUuid.ObexObjectPush.getUuid());
-                                if (V) Log.v(TAG, "Started RFCOMM listener....");
+                                mBtServerSocket = mAdapter
+                                        .listenUsingInsecureRfcommOn(mBtOppRfcommChannel);
                             } catch (IOException e1) {
                                 Log.e(TAG, "Error create RfcommServerSocket " + e1);
                                 serverOK = false;
@@ -135,8 +131,8 @@ public class BluetoothOppRfcommListener {
                             if (!serverOK) {
                                 synchronized (this) {
                                     try {
-                                        if (V) Log.v(TAG, "Wait 300 ms");
-                                        Thread.sleep(300);
+                                        if (V) Log.v(TAG, "wait 3 seconds");
+                                        Thread.sleep(3000);
                                     } catch (InterruptedException e) {
                                         Log.e(TAG, "socketAcceptThread thread was interrupted (3)");
                                         mInterrupted = true;
@@ -151,22 +147,13 @@ public class BluetoothOppRfcommListener {
                             mInterrupted = true;
                         }
                         if (!mInterrupted) {
-                            Log.i(TAG, "Accept thread started.");
+                            Log.i(TAG, "Accept thread started on channel " + mBtOppRfcommChannel);
                         }
                         BluetoothSocket clientSocket;
                         while (!mInterrupted) {
                             try {
-                                if (V) Log.v(TAG, "Accepting connection...");
-                                if (mBtServerSocket == null) {
-
-                                }
-                                BluetoothServerSocket sSocket = mBtServerSocket;
-                                if (sSocket ==null) {
-                                    mInterrupted = true;
-
-                                } else {
-                                    clientSocket = sSocket.accept();
-                                    if (V) Log.v(TAG, "Accepted connection from "
+                                clientSocket = mBtServerSocket.accept();
+                                Log.i(TAG, "Accepted connectoin from "
                                         + clientSocket.getRemoteDevice());
                                     BluetoothOppRfcommTransport transport = new BluetoothOppRfcommTransport(
                                         clientSocket);
@@ -175,12 +162,8 @@ public class BluetoothOppRfcommListener {
                                     msg.what = MSG_INCOMING_BTOPP_CONNECTION;
                                     msg.obj = transport;
                                     msg.sendToTarget();
-                                }
                             } catch (IOException e) {
                                 Log.e(TAG, "Error accept connection " + e);
-                                try {
-                                    Thread.sleep(500);
-                                } catch (InterruptedException ie) {}
                             }
                         }
                         Log.i(TAG, "BluetoothSocket listen thread finished");
@@ -205,7 +188,6 @@ public class BluetoothOppRfcommListener {
                 if (mTcpServerSocket != null) {
                     try {
                         mTcpServerSocket.close();
-                        mTcpServerSocket = null;
                     } catch (IOException e) {
                         Log.e(TAG, "Error close mTcpServerSocket");
                     }
@@ -216,7 +198,6 @@ public class BluetoothOppRfcommListener {
                 if (mBtServerSocket != null) {
                     try {
                         mBtServerSocket.close();
-                        mBtServerSocket = null;
                     } catch (IOException e) {
                         Log.e(TAG, "Error close mBtServerSocket");
                     }
@@ -225,9 +206,7 @@ public class BluetoothOppRfcommListener {
             try {
                 mSocketAcceptThread.interrupt();
                 if (V) Log.v(TAG, "waiting for thread to terminate");
-                //mSocketAcceptThread.join(JOIN_TIMEOUT_MS);
                 mSocketAcceptThread.join();
-                if (V) Log.v(TAG, "done waiting for thread to terminate");
                 mSocketAcceptThread = null;
                 mCallback = null;
             } catch (InterruptedException e) {
